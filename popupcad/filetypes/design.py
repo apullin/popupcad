@@ -17,7 +17,7 @@ class NoOperation(Exception):
         Exception.__init__(self,'No Parent Operation')
         
 class Design(popupCADFile):
-    filetypes = {'cad':'CAD Design'}
+    filetypes = {'cad':'CAD Design', 'dxf':'DXF File'}
     defaultfiletype = 'cad'
     filters,filterstring,selectedfilter = popupCADFile.buildfilters(filetypes,defaultfiletype)
 
