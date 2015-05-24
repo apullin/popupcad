@@ -117,11 +117,83 @@ class GenericFile(object):
             obj1 = yaml.load(f)
         obj1.updatefilename(filename)
         return obj1
+    
+    @classmethod
+    def load_dxf(cls,filename):
+        import dxfgrabber
+        #Do these imports imply that this function should be moved to a derived class?
+        import popupcad 
+        
+        from popupcad.geometry.vertex import ShapeVertex
+        from popupcad.filetypes.genericshapes import GenericShapeBase
+        from popupcad.filetypes.genericshapes import GenericPoly,GenericPolyline,GenericLine,GenericCircle,GenericTwoPointRect
+        from popupcad.manufacturing.simplesketchoperation import SimpleSketchOp
+
+        #Read in the DXF
+        dxf = dxfgrabber.readfile(filename)
+            
+        names = dxf.layers.names()
+        bylayer = {}
+        for layname in names:
+            bylayer[layname] = popupcad.filetypes.sketch.Sketch()
+        
+        for ent in dxf.entities:
+            print ent
+            lay = ent.layer
+            if type(ent) is dxfgrabber.entities.Circle:
+                vert_center = ShapeVertex(ent.center)
+                pt_edge = (ent.center[0] + ent.radius, ent.center[1])
+                vert_edge = ShapeVertex(pt_edge)
+                circ = GenericCircle(exterior = [vert_center, vert_edge], interiors = [])
+                bylayer[lay].operationgeometry.append(circ)
+                
+            elif type(ent) is dxfgrabber.entities.LWPolyline:
+                poly = GenericShapeBase.gengenericpoly(ent.points,[])
+                bylayer[lay].operationgeometry.append(poly)
+                
+        print bylayer
+        
+        sketches = {}
+        # This seems like an odd operation, like I am not leveraging some existing key/value construction elsewhere
+        # This converts the named DXF layer dict into one keyed by popupcad id's
+        for sk in bylayer.values():
+            sketches[sk.id] = sk
+        
+        from popupcad.filetypes.layerdef import LayerDef
+        from popupcad.materials.materials import Carbon_0_90_0,Pyralux,Kapton
+        from popupcad.filetypes.design import Design
+        
+        design = Design()
+        # default Wood Lab 5-layer
+        design.define_layers(LayerDef(Carbon_0_90_0(),Pyralux(),Kapton(),Pyralux(),Carbon_0_90_0()))
+        design = Design()
+        
+        # Assign collection of sketches from above
+        design.sketches = sketches
+        
+        # Generate sketch ops
+        layer_links_all = [lay.id for lay in design._layerdef.layers]
+        sketch_ops = []
+        for sk in sketches.values():
+            sketch_links = {'sketch':[sk.id]}
+            sketch_ops.append(SimpleSketchOp(sketch_links, layer_links_all))
+        
+        design.operations = sketch_ops
+        
+        design.updatefilename(filename)
+        
+        return design
 
     @classmethod
     def open_filename(cls,parent = None,openmethod = None,**openmethodkwargs):
         filename, selectedfilter = qg.QFileDialog.getOpenFileName(parent,'Open',cls.lastdir(),filter = cls.filterstring,selectedFilter = cls.selectedfilter)
         if filename:
+            ext = filename[-3:]
+            if ext == u'dxf':
+                openmethod = cls.load_dxf
+            elif ext == u'eps':
+                pass #Fake placeholder, example of where to add in openmethod selection for other types
+            
             if openmethod == None:
                 design = cls.load_yaml(filename)
             else:
