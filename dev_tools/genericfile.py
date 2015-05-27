@@ -132,7 +132,6 @@ class GenericFile(object):
             bylayer[layname] = popupcad.filetypes.sketch.Sketch()
         
         for ent in dxf.entities:
-            print ent
             lay = ent.layer
             if type(ent) is dxfgrabber.entities.Circle:
                 vert_center = ShapeVertex(ent.center)
@@ -145,7 +144,6 @@ class GenericFile(object):
                 poly = GenericShapeBase.gengenericpoly(ent.points,[])
                 bylayer[lay].operationgeometry.append(poly)
                 
-        print bylayer
         
         sketches = {}
         # This seems like an odd operation, like I am not leveraging some existing key/value construction elsewhere
