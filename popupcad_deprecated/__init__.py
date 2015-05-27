@@ -4,103 +4,189 @@ Written by Daniel M. Aukes.
 Email: danaukes<at>seas.harvard.edu.
 Please see LICENSE.txt for full license.
 """
-
 import popupcad
+import dev_tools
 import types
 import sys
+import popupcad_manufacturing_plugins
 
-def map_module(name,source_location,dest_location):
+modules_before = sys.modules.copy()
+
+def make_new_module(name):
+    new_module = types.ModuleType(name)
+    sys.modules[name] = new_module
+    exec('{0}=new_module'.format(name))
+
+def load_local(source_location,name):
+#    print(name)
     exec('from {0} import {1}'.format(source_location,name))    
-    exec('{0}.{1}={1}'.format(dest_location,name))    
-    exec('sys.modules["{0}.{1}"]={1}'.format(dest_location,name))    
 
-def map_module2(name,source_location,dest_location1,dest_location2):
-    
-#    exec('{0}.{1} = {2}.{3}'.format(dest_location1,name,source_location,name))    
-#    exec('sys.modules["{0}.{1}"]={2}.{3}'.format(dest_location1,name,source_location,name))    
-#    exec('sys.modules["{0}.{1}"]={2}.{3}'.format(dest_location2,name,source_location,name))    
+def remap_module(source_location,dest_location):
+#    print(source_location,dest_location)
+    exec('{0}={1}'.format(dest_location,source_location))    
+    exec('sys.modules["{0}"]={1}'.format(dest_location,source_location))    
 
-    exec('from {1} import {0}'.format(name,source_location,dest_location1,dest_location2))    
-    exec('{2}.{0} = {0}'.format(name,source_location,dest_location1,dest_location2))    
-    exec('sys.modules["{2}.{0}"]={0}'.format(name,source_location,dest_location1,dest_location2))    
-    exec('{3}.{0} = {0}'.format(name,source_location,dest_location1,dest_location2))    
-    exec('sys.modules["{3}.{0}"]={0}'.format(name,source_location,dest_location1,dest_location2))    
+def remap_class(source_location,dest_location):
+    exec('{0}={1}'.format(dest_location,source_location))    
 
-import popupcad.manufacturing.locateoperation2 as locateoperation
-locateoperation.LocateOperation = locateoperation.LocateOperation2
-popupcad.manufacturing.locateoperation = locateoperation
-sys.modules['popupcad.manufacturing.locateoperation']  = locateoperation
+local_modules0 = []
+local_modules0.append('multivalueoperation2')
+local_modules0.append('sketchoperation2')
 
-my_modules = []
-my_modules.append(('placeop4','.','popupcad.manufacturing'))
-my_modules.append(('placeop5','.','popupcad.manufacturing'))
-my_modules.append(('placeop6','.','popupcad.manufacturing'))
-my_modules.append(('sketchoperation','.','popupcad.manufacturing'))
-my_modules.append(('cutop','.','popupcad.manufacturing'))
-my_modules.append(('customsupport2','.','popupcad.manufacturing'))
-for module in my_modules:
-    map_module(*module)
+modules_remap0 = []
+my_manufacturing_modules0 = []
+my_manufacturing_modules0.append('multivalueoperation2')
+my_manufacturing_modules0.append('sketchoperation2')
+for module in my_manufacturing_modules0:
+    modules_remap0.append((module,'popupcad.manufacturing.'+module))
+    modules_remap0.append((module,'popupcad.plugins.manufacturing.'+module))
+    modules_remap0.append((module,'popupcad_manufacturing_plugins.'+module))
 
-from . import genericpolygon
+local_modules = []
+local_modules.append('autoweb3')
+local_modules.append('bufferop2')
+local_modules.append('cleanup')
+local_modules.append('customsupport2')
+local_modules.append('customsupport3')
+local_modules.append('cutop')
+local_modules.append('cutop2')
+local_modules.append('genericpolygon')
+local_modules.append('identifybodies')
+local_modules.append('identifyrigidbodies')
+local_modules.append('jointop')
+local_modules.append('keepout2')
+local_modules.append('laminateoperation')
+local_modules.append('layerop')
+#local_modules.append('locateoperation')
+local_modules.append('locateoperation2')
+local_modules.append('outersheet2')
+local_modules.append('placeop4')
+local_modules.append('placeop5')
+local_modules.append('placeop6')
+local_modules.append('placeop7')
+local_modules.append('removability')
+local_modules.append('scrapoperation')
+local_modules.append('shiftflip2')
+local_modules.append('simplify')
+local_modules.append('sketchoperation')
+local_modules.append('supportcandidate3')
+local_modules.append('toolclearance2')
+local_modules.append('toolclearance3')
 
-remapped_modules = []
-remapped_modules.append(('identifybodies','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('identifyrigidbodies','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('customsupport3','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('supportcandidate3','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('toolclearance2','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('autoweb3','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('keepout2','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('outersheet2','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
-remapped_modules.append(('removability','popupcad_manufacturing_plugins.manufacturing','popupcad.manufacturing','popupcad.plugins.manufacturing'))
+new_modules = []
+new_modules.append('popupcad.plugins')
+new_modules.append('popupcad.plugins.manufacturing')
+new_modules.append('popupcad.constraints')
 
-try:
-    import popupcad_manufacturing_plugins
-    popupcad.plugins = types.ModuleType('popupcad.plugins')
-    sys.modules['popupcad.plugins'] = popupcad.plugins
-    popupcad.plugins.manufacturing = types.ModuleType('popupcad.plugins.manufacturing')
-    sys.modules['popupcad.plugins.manufacturing'] = popupcad.plugins.manufacturing
-    for module in remapped_modules:
-        map_module2(*module)
-#    popupcad.manufacturing.identifybodies  = popupcad_manufacturing_plugins.manufacturing.identifybodies
-#    popupcad.manufacturing.identifyrigidbodies  = popupcad_manufacturing_plugins.manufacturing.identifyrigidbodies
-#    popupcad.manufacturing.customsupport3  = popupcad_manufacturing_plugins.manufacturing.customsupport3
-#    popupcad.manufacturing.supportcandidate3  = popupcad_manufacturing_plugins.manufacturing.supportcandidate3
-#    popupcad.manufacturing.toolclearance2  = popupcad_manufacturing_plugins.manufacturing.toolclearance2
-#    popupcad.manufacturing.autoweb3  = popupcad_manufacturing_plugins.manufacturing.autoweb3
-#    popupcad.manufacturing.keepout2  = popupcad_manufacturing_plugins.manufacturing.keepout2
-#    popupcad.manufacturing.outersheet2  = popupcad_manufacturing_plugins.manufacturing.outersheet2
-#    popupcad.manufacturing.removability  = popupcad_manufacturing_plugins.manufacturing.removability
+my_manufacturing_modules = []
+#my_manufacturing_modules.append('multivalueoperation2')
+my_manufacturing_modules.append('autoweb3')
+my_manufacturing_modules.append('bufferop2')
+my_manufacturing_modules.append('cleanup')
+my_manufacturing_modules.append('customsupport2')
+my_manufacturing_modules.append('customsupport3')
+my_manufacturing_modules.append('cutop')
+my_manufacturing_modules.append('cutop2')
+my_manufacturing_modules.append('identifybodies')
+my_manufacturing_modules.append('identifyrigidbodies')
+my_manufacturing_modules.append('jointop')
+my_manufacturing_modules.append('keepout2')
+my_manufacturing_modules.append('laminateoperation')
+my_manufacturing_modules.append('layerop')
+#my_manufacturing_modules.append('locateoperation')
+my_manufacturing_modules.append('locateoperation2')
+my_manufacturing_modules.append('outersheet2')
+my_manufacturing_modules.append('placeop4')
+my_manufacturing_modules.append('placeop5')
+my_manufacturing_modules.append('placeop6')
+my_manufacturing_modules.append('placeop7')
+my_manufacturing_modules.append('removability')
+my_manufacturing_modules.append('scrapoperation')
+my_manufacturing_modules.append('shiftflip2')
+my_manufacturing_modules.append('simplify')
+my_manufacturing_modules.append('sketchoperation')
+my_manufacturing_modules.append('supportcandidate3')
+my_manufacturing_modules.append('toolclearance2')
+my_manufacturing_modules.append('toolclearance3')
+
+modules_remap = []
+modules_remap.append(('locateoperation2','popupcad.manufacturing.locateoperation'))
+for module in my_manufacturing_modules:
+    modules_remap.append((module,'popupcad.manufacturing.'+module))
+    modules_remap.append((module,'popupcad.plugins.manufacturing.'+module))
+    modules_remap.append((module,'popupcad_manufacturing_plugins.manufacturing.'+module))
+modules_remap.append(('popupcad_manufacturing_plugins.manufacturing.cutop2','popupcad.manufacturing.cutop2'))
+modules_remap.append(('popupcad.filetypes.laminate','popupcad.materials.laminatesheet'))
+modules_remap.append(('popupcad.filetypes.genericshapes','popupcad.geometry.genericpolygon'))
+modules_remap.append(('popupcad.filetypes.genericshapebase','popupcad.geometry.genericshapebase'))
+modules_remap.append(('popupcad.filetypes.constraints','popupcad.constraints.constraints'))
+modules_remap.append(('popupcad.filetypes.constraints','dev_tools.constraints'))
+
+classes_remap = []
+classes_remap.append(('popupcad.geometry.vertex.ShapeVertex','popupcad.geometry.vertex.Vertex'))
+classes_remap.append(('genericpolygon.GenericShape','popupcad.filetypes.genericshapes.GenericShape'))
+classes_remap.append(('popupcad.filetypes.layerdef.LayerDef','popupcad.materials.LayerDef'))
+classes_remap.append(('popupcad.filetypes.layerdef.LayerDef','popupcad.materials.materials.LayerDef'))
+classes_remap.append(('popupcad.filetypes.layer.Layer','popupcad.filetypes.laminate.Layer'))
+classes_remap.append(('locateoperation2.LocateOperation2','popupcad.manufacturing.locateoperation2.LocateOperation'))
+
+
+#load_local('.','multivalueoperation2')
+#remap_module('multivalueoperation2','popupcad.manufacturing.multivalueoperation2')
+
+for module in new_modules:
+    make_new_module(module)
+
+for module in local_modules0:
+    load_local('.',module)
+
+for item in modules_remap0:
+    remap_module(*item)
+
+for module in local_modules:
+    load_local('.',module)
+
+for item in modules_remap:
+    remap_module(*item)
+
+for item in classes_remap:
+    remap_class(*item)
+
+modules_after = sys.modules.copy()
+modules_diff = list(set(modules_after.keys()) - set(modules_before.keys()))
+#
+#def undeprecate():
+#    for path in local_modules:
+#        sys.modules.pop('popupcad_deprecated.'+path)
+#        try:
+#            exec('del {0}'.format(path))
+#        except Exception as ex:
+#            print(ex,path)
+#
+#    for path in new_modules:
+#        sys.modules.pop(path)
+#        try:
+#            exec('del {0}'.format(path))
+#        except Exception as ex:
+#            print(ex,path)
+#
+#    for source,path in modules_remap:
+#        sys.modules.pop(path)
+#        try:
+#            exec('del {0}'.format(path))
+#        except Exception as ex:
+#            print(ex,path)
+#        
+#    for source,path in classes_remap:
+#        try:
+#            exec('del {0}'.format(path))
+#        except Exception as ex:
+#            print(ex,path)
 #    
-#    sys.modules['popupcad.manufacturing.identifybodies']  = popupcad_manufacturing_plugins.manufacturing.identifybodies
-#    sys.modules['popupcad.manufacturing.identifyrigidbodies']  = popupcad_manufacturing_plugins.manufacturing.identifyrigidbodies
-#    sys.modules['popupcad.manufacturing.customsupport3']  = popupcad_manufacturing_plugins.manufacturing.customsupport3
-#    sys.modules['popupcad.manufacturing.supportcandidate3']  = popupcad_manufacturing_plugins.manufacturing.supportcandidate3
-#    sys.modules['popupcad.manufacturing.toolclearance2']  = popupcad_manufacturing_plugins.manufacturing.toolclearance2
-#    sys.modules['popupcad.manufacturing.autoweb3']  = popupcad_manufacturing_plugins.manufacturing.autoweb3
-#    sys.modules['popupcad.manufacturing.keepout2']  = popupcad_manufacturing_plugins.manufacturing.keepout2
-#    sys.modules['popupcad.manufacturing.outersheet2']  = popupcad_manufacturing_plugins.manufacturing.outersheet2
-#    sys.modules['popupcad.manufacturing.removability']  = popupcad_manufacturing_plugins.manufacturing.removability
-#    
-#    popupcad.plugins = popupcad_manufacturing_plugins
-#    sys.modules['popupcad.plugins']  = popupcad_manufacturing_plugins
-except ImportError:
-    pass
-
-Vertex = popupcad.geometry.vertex.ShapeVertex
-popupcad.geometry.vertex.Vertex =popupcad.geometry.vertex.ShapeVertex
-
-popupcad.materials.laminatesheet = popupcad.filetypes.laminate
-sys.modules['popupcad.materials.laminatesheet']  = popupcad.filetypes.laminate
-popupcad.filetypes.laminate.Layer = popupcad.filetypes.layer.Layer
-
-popupcad.geometry.genericpolygon= popupcad.filetypes.genericshapes
-sys.modules['popupcad.geometry.genericpolygon']  = popupcad.filetypes.genericshapes
-popupcad.filetypes.genericshapes.GenericShape = genericpolygon.GenericShape
-
-popupcad.geometry.genericshapebase= popupcad.filetypes.genericshapebase
-sys.modules['popupcad.geometry.genericshapebase']  = popupcad.filetypes.genericshapebase
-
-popupcad.materials.LayerDef = popupcad.filetypes.layerdef.LayerDef
-popupcad.materials.materials.LayerDef = popupcad.filetypes.layerdef.LayerDef
-
+#    try:
+#        for path in modules_diff:
+#            sys.modules.pop('popupcad_deprecated.'+path)
+#            exec('del {0}'.format(path))
+#            
+#    except Exception as ex:
+#        print(ex)

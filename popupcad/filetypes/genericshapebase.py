@@ -25,7 +25,6 @@ class NotSimple(Exception):
 class GenericShapeBase(popupCADFile):
     filetypes = {'shape':'Shape File'}
     defaultfiletype = 'shape'
-    filters,filterstring,selectedfilter = popupCADFile.buildfilters(filetypes,defaultfiletype)
 
     display = ['construction','exterior','interiors']
     editable = ['construction']
@@ -33,6 +32,21 @@ class GenericShapeBase(popupCADFile):
     tolerance = 10.**-(roundvalue-1)
     shapetypes = enum(line = 'line',polyline = 'polyline',polygon = 'polygon',circle = 'circle',rect2point = 'rect2point')
     deletable = []
+
+    def __init__(self,exterior,interiors,construction = False,test_shapely = False):
+        super(GenericShapeBase,self).__init__()
+        self.exterior = exterior
+        self.interiors = interiors
+        
+        self.exterior, self.interiors = self.condition_points(self.exterior, self.interiors )
+
+        self.construction = construction
+        if test_shapely:
+            shapely = self.outputshapely()
+            if not shapely.is_simple:
+                raise(NotSimple)
+            if not shapely.is_valid:
+                raise(ShapeInvalid)
 
     @classmethod
     def lastdir(cls):
@@ -50,7 +64,6 @@ class GenericShapeBase(popupCADFile):
         exterior = [vertex.copy(identical) for vertex in self.get_exterior()]
         interiors = [[vertex.copy(identical) for vertex in interior] for interior in self.get_interiors()]
         new = new_type(exterior,interiors,self.is_construction())
-        new.setmoveable(self.is_moveable())
         if identical:
             new.id = self.id
         self.copy_file_params(new,identical)
@@ -63,21 +76,10 @@ class GenericShapeBase(popupCADFile):
         exterior = [vertex.upgrade(identical) for vertex in self.get_exterior()]
         interiors = [[vertex.upgrade(identical) for vertex in interior] for interior in self.get_interiors()]
         new = type(self)(exterior,interiors,self.is_construction())
-        new.setmoveable(self.is_moveable())
         if identical:
             new.id = self.id
         self.copy_file_params(new,identical)
         return new
-
-    def setmoveable(self,test):
-        self.moveable = test
-
-    def is_moveable(self):
-        try:
-            return self.moveable
-        except AttributeError:
-            self.moveable = True
-            return self.moveable
 
     def get_exterior(self):
         return self.exterior
@@ -136,23 +138,6 @@ class GenericShapeBase(popupCADFile):
     def properties(self):
         from dev_tools.propertyeditor import PropertyEditor
         return PropertyEditor(self)
-        
-    def __init__(self,exterior,interiors,construction = False,test_shapely = False):
-        self.id = id(self)
-        self.exterior = exterior
-        self.interiors = interiors
-        self._basename = self.genbasename()
-        self.setmoveable(True)
-        
-        self.exterior, self.interiors = self.condition_points(self.exterior, self.interiors )
-
-        self.construction = construction
-        if test_shapely:
-            shapely = self.outputshapely()
-            if not shapely.is_simple:
-                raise(NotSimple)
-            if not shapely.is_valid:
-                raise(ShapeInvalid)
         
     def addvertex_exterior(self,vertex,special = False):
         self.exterior.append(vertex)
@@ -275,15 +260,6 @@ class GenericShapeBase(popupCADFile):
             self.update_handles()
             return self._exteriorhandles
 
-    def toCDT3(self):
-        from pypoly2tri.shapes import Point
-        from pypoly2tri.cdt import CDT
-        exterior = [Point(*point) for point in self.exteriorpoints()]
-        interiors = [[Point(*point) for point in interior] for interior in self.interiorpoints()]
-        cdt = CDT(exterior)
-        [cdt.AddHole(interior) for interior in interiors]
-        return cdt
-    
     def triangles3(self):
         return []
 

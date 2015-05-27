@@ -5,6 +5,7 @@ Email: danaukes<at>seas.harvard.edu.
 Please see LICENSE.txt for full license.
 """
 
+from . import constraints
 from . import classtools
 from . import design
 from . import popupcad_file
@@ -17,6 +18,7 @@ from . import listwidgetitem
 from . import operation
 from . import operation2
 from . import operationoutput
+from . import program
 from . import programsettings
 from . import sketch
 from . import solidworksimport

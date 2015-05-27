@@ -19,7 +19,6 @@ class NoOperation(Exception):
 class Design(popupCADFile):
     filetypes = {'cad':'CAD Design', 'dxf':'DXF File'}
     defaultfiletype = 'cad'
-    filters,filterstring,selectedfilter = popupCADFile.buildfilters(filetypes,defaultfiletype)
 
     @classmethod
     def lastdir(cls):
@@ -36,7 +35,6 @@ class Design(popupCADFile):
         self.id = id(self)
         self.sketches = {}
         self.subdesigns = {}
-        self._basename = self.genbasename()
     
     def define_layers(self,layerdef):
         self._layerdef = layerdef
@@ -118,9 +116,6 @@ class Design(popupCADFile):
                 pass
             m.exec_()
 
-            
-        
-
     def prioroperations(self,op):
         priorindex = self.operation_index(op.id)
         prioroperations = self.operations[:priorindex]
@@ -167,10 +162,10 @@ class Design(popupCADFile):
         for key,value in self.subdesigns.items():
             new.subdesigns[key]=value.upgrade(identical = True)
         self.copy_file_params(new,identical)
-        new.upgrade_higher_level()
+        new.upgrade_operations2()
         return new    
 
-    def upgrade_higher_level(self):
+    def upgrade_operations2(self):
         from popupcad.manufacturing.sketchoperation2 import SketchOperation2
         from popupcad.manufacturing.simplesketchoperation import SimpleSketchOp
         from popupcad.manufacturing.laminateoperation2 import LaminateOperation2
@@ -207,7 +202,7 @@ class Design(popupCADFile):
             failed = self.replace_op_refs_force(old,new)
             check_failures = set(failed)-set(ops_to_remove)
             if not not check_failures:
-                raise(UpgradeError('Some operations could not be upgraded.  loss of data may have occurred'))
+                raise(UpgradeError('Some operations could not be upgraded.  loss of data may have occurred',list(check_failures)))
                     
         for op in ops_to_remove:
             self.operations.pop(self.operations.index(op))
@@ -308,3 +303,8 @@ class Design(popupCADFile):
                     yaml.dump((op.bodies_generic,op.connections,op.fixed_bodies,op.all_joint_props),f)
             except AttributeError:
                 pass
+
+    def copy_yaml(self,identical = True):
+        import yaml
+        new = yaml.load(yaml.dump(self.copy(identical)))
+        return new

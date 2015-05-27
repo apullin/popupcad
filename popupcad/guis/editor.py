@@ -37,7 +37,21 @@ class Editor(qg.QMainWindow,popupcad.widgets.widgetcommon.WidgetCommon):
                 tb = sys.exc_info()[2]
                 exception_string = traceback.format_exception(type(ex), ex, tb)
                 [self.error_log.appendText(item) for item in exception_string]
+
+                m = qg.QMessageBox()
+                m.setIcon(m.Warning)
+                m.setText(ex.args[0])
+                try:
+                    m.setInformativeText(str(ex.args[1]))
+                except IndexError:
+                    pass
+                try:
+                    m.setDetailedText(str(ex.args[2]))
+                except IndexError:
+                    pass
+                m.exec_()
                 raise
+
         return log
         
     def __init__(self, parent=None,**kwargs):
@@ -149,6 +163,7 @@ class Editor(qg.QMainWindow,popupcad.widgets.widgetcommon.WidgetCommon):
         self.fileactions.append({'text':"Export Laminate",'kwargs':{'triggered':self.export_laminate}})      
         self.fileactions.append({'text':"Regen ID",'kwargs':{'triggered':self.regen_id,}})      
         self.fileactions.append({'text':"Preferences...",'kwargs':{'triggered':self.preferences}})     
+        self.fileactions.append({'text':"Render Icons",'kwargs':{'triggered':self.gen_icons}})     
         def dummy(action):
             action.setEnabled(sys.platform=='win32' and getattr(sys,'frozen',False))
         self.fileactions.append({'text':"Update...",'kwargs':{'triggered':self.download_installer},'prepmethod':dummy})      
@@ -358,6 +373,8 @@ class Editor(qg.QMainWindow,popupcad.widgets.widgetcommon.WidgetCommon):
     @loggable
     def showcurrentoutput_inner(self,ii,jj):
         try:
+            self.sceneview.deleteall()
+            self.view_3d.view.clear()
             operationoutput = self.design.operations[ii].output[jj]
             selectedlayers=[item for item in self.design.return_layer_definition().layers if item in self.layerlistwidget.selectedData()]
             self.show2dgeometry3(operationoutput,selectedlayers)
@@ -485,7 +502,11 @@ class Editor(qg.QMainWindow,popupcad.widgets.widgetcommon.WidgetCommon):
         newop.operation_links['unary'].append((operation_ref,output_index))
         self.reprocessoperations()
     def upgrade(self):
-        self.load_design(self.design.upgrade())
+        try:
+            self.load_design(self.design.upgrade())
+        except popupcad.filetypes.design.UpgradeError as ex:
+            print(ex)
+            raise
         if self.act_autoreprocesstoggle.isChecked():
             self.reprocessoperations()
         self.view_2d.zoomToFit() 
@@ -518,6 +539,15 @@ class Editor(qg.QMainWindow,popupcad.widgets.widgetcommon.WidgetCommon):
         output = self.design.operations[ii].output[jj]
         generic = output.csg.to_generic_laminate()
         generic.saveAs()
+
+    def gen_icons(self):
+        import pydevtools.popupcad_tools.generate_popupcad_images as sub
+        import yaml
+        widget = sub.Widget((400,300))        
+        design2 = yaml.load(yaml.dump(self.design.copy()))
+        design2.reprocessoperations()
+        widget.load_directory(design2.filename())
+        widget.render_design(design2,design2.dirname)
         
 if __name__ == "__main__":
     app = qg.QApplication(sys.argv)
